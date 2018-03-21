@@ -23,24 +23,8 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, int max_events, 
             
             coreJec.setJECFor(looper.getCurrentFileName());
 
-            // Loop over electrons
-            ProcessElectrons();
-
-            // Loop over muons
-            ProcessMuons();
-
-            // Check preselection
-            if (!PassPresel())
-                continue;
-
-            // Loop over Jets
-            ProcessJets();
-
-            // Process MET (recalculate etc.)
-            ProcessMET();
-
-            // Loop over charged particle candidates
-            ProcessTracks();
+            // Loop over gen level particles
+            ProcessGenParticles();
 
             // Fill baby ntuple
             FillOutput();
@@ -92,6 +76,12 @@ void babyMaker::CreateOutput(int index)
     t = new TTree("t", "t");
     tx = new RooUtil::TTreeX(t);
 
+    tx->createBranch<vector<LV>>("genPart_p4");
+    tx->createBranch<vector<int>>("genPart_pdgId");
+    tx->createBranch<vector<int>>("genPart_status");
+    tx->createBranch<vector<int>>("genPart_motherId");
+    tx->createBranch<vector<int>>("genPart_grandmaId");
+
     tx->clear();
 }
 
@@ -99,13 +89,12 @@ void babyMaker::CreateOutput(int index)
 void babyMaker::ProcessTriggers() { coreTrigger.process(); }
 
 //##############################################################################################################
-void babyMaker::ProcessGenParticles() { coreGenPart.process(); }
+void babyMaker::ProcessGenParticles() { coreGenPart.process(isPreselGenPart); }
 
 //##############################################################################################################
-void babyMaker::ProcessElectrons() { coreElectron.process(isPreselElectron, checkElectronTag); }
+void babyMaker::ProcessElectrons() { coreElectron.process(isPreselElectron); }
 
 //##############################################################################################################
-//void babyMaker::ProcessMuons() { coreMuon.process(isPreselMuon, checkMuonTag); }
 void babyMaker::ProcessMuons() { coreMuon.process(isPreselMuon); }
 
 //##############################################################################################################
@@ -134,6 +123,11 @@ bool babyMaker::PassPresel()
 //##############################################################################################################
 void babyMaker::FillOutput()
 {
+    // Fill the generator information
+    FillGenInfo();
+
+    // Actually fill the TTree
+    FillTTree();
 }
 
 //##############################################################################################################
@@ -170,6 +164,19 @@ void babyMaker::SortJetBranches()
 //##############################################################################################################
 void babyMaker::FillVertexInfo()
 {
+}
+
+//##############################################################################################################
+void babyMaker::FillGenInfo()
+{
+    for (unsigned int ip = 0; ip < coreGenPart.genPart_p4.size(); ++ip)
+    {
+        tx->pushbackToBranch<LV>("genPart_p4", coreGenPart.genPart_p4[ip]);
+        tx->pushbackToBranch<int>("genPart_pdgId", coreGenPart.genPart_pdgId[ip]);
+        tx->pushbackToBranch<int>("genPart_status", coreGenPart.genPart_status[ip]);
+        tx->pushbackToBranch<int>("genPart_motherId", coreGenPart.genPart_motherId[ip]);
+        tx->pushbackToBranch<int>("genPart_grandmaId", coreGenPart.genPart_grandmaId[ip]);
+    }
 }
 
 //##############################################################################################################
@@ -259,34 +266,19 @@ bool babyMaker::isPreselElectron(int idx)
 }
 
 //##############################################################################################################
-int babyMaker::passCount(const vector<int>& v)
+// Used to select OK gen particles
+bool babyMaker::isPreselGenPart(int idx)
 {
-    return std::count_if(v.begin(), v.end(), [](int i){return i > 0;});
-}
-
-//##############################################################################################################
-bool babyMaker::checkMuonTag(int i, int j)
-{
-    // Tag muon selection
-    if (!( cms3.mus_p4()[j].pt()                                    >= 20.0  )) return false;
-    if (!( fabs(cms3.mus_p4()[j].eta())                             <=  2.4  )) return false;
-    if (!( fabs(cms3.mus_dxyPV()[j])                                <=  0.02 )) return false;
-    if (!( fabs(cms3.mus_dzPV()[j])                                 <=  0.05 )) return false;
-    if (!( fabs(cms3.mus_ip3d()[j] / cms3.mus_ip3derr()[j])         <=  4    )) return false;
-    if (!( isTightMuonPOG(j)                                                 )) return false;
-    if (!( muRelIso03EA(j)                                          <=  0.2  )) return false;
-//    if (!( fabs((cms3.mus_p4()[i] + cms3.mus_p4()[j]).mass() - 90.) <  30.   )) return false;
-    return true;
-}
-
-//##############################################################################################################
-bool babyMaker::checkElectronTag(int i, int j)
-{
-    if (!( cms3.els_p4()[j].pt()                                    >= 20.0  )) return false;
-    if (!( fabs(cms3.els_etaSC()[j])                                <=  2.5  )) return false;
-    if (!( cms3.els_passMediumId()[j]                                        )) return false;
-    if (!( fabs(cms3.els_ip3d()[j] / cms3.els_ip3derr()[j])         <=  4    )) return false;
-//    if (!( fabs((cms3.els_p4()[i] + cms3.els_p4()[j]).mass() - 90.) <  30.   )) return false;
+    // Good for powheg pythia8 samples
+    int status = cms3.genps_status()[idx];
+    int id = cms3.genps_id()[idx];
+    int mother = cms3.genps_id_mother()[idx];
+    if (!(
+        /* is H or W         */     (status == 22 && (id == 25 || abs(id) == 24))
+        /* is W decay quarks */  || (status == 23 && abs(mother) == 24 && (abs(id) >= 1 && abs(id) <= 6)) // allow bottom and top just for completion.
+        /* is W decay leptons*/  || (status ==  1 && abs(mother) == 24 && (abs(id) >= 11 && abs(id) <= 16))
+        /* is W decay tau    */  || (status ==  2 && abs(mother) == 24 && (abs(id) == 15))
+        )) return false;
     return true;
 }
 

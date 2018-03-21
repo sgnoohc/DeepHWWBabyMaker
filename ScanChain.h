@@ -138,6 +138,7 @@ public:
     void FillTracks();
     void SortJetBranches();
     void FillVertexInfo();
+    void FillGenInfo();
     void FillMETFilter();
     void FillTTree();
 
@@ -147,11 +148,7 @@ public:
     static bool isLooseElectron(int);
     static bool isPreselMuon(int);
     static bool isPreselElectron(int);
-    static bool checkMuonTag(int, int);
-    static bool checkElectronTag(int, int);
-
-    // Calculator
-    static int passCount(const vector<int>& vec);
+    static bool isPreselGenPart(int);
 
 };
 
