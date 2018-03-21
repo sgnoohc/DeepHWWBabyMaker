@@ -229,7 +229,7 @@ bool babyMaker::isLeptonOverlappingWithJet(int ijet)
 bool babyMaker::isLooseMuon(int idx)
 {
     if (!( cms3.mus_p4()[idx].pt() > 20.                     )) return false;
-    if (!( passMuonSelection_VVV(idx, VVV_cutbased_3l_fo) )) return false;
+    if (!( passMuonSelection_VVV(idx, VVV_cutbased_3l_fo_v2) )) return false;
     return true;
 }
 
@@ -238,7 +238,7 @@ bool babyMaker::isLooseMuon(int idx)
 bool babyMaker::isLooseElectron(int idx)
 {
     if (!( cms3.els_p4()[idx].pt() > 20.                         )) return false;
-    if (!( passElectronSelection_VVV(idx, VVV_cutbased_3l_fo) )) return false;
+    if (!( passElectronSelection_VVV(idx, VVV_cutbased_3l_fo_v2) )) return false;
     return true;
 }
 
