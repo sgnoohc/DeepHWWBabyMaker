@@ -1,0 +1,25 @@
+diff --git a/MetSelections.cc b/MetSelections.cc
+index 59e285f..c525456 100644
+--- a/MetSelections.cc
++++ b/MetSelections.cc
+@@ -431,8 +431,18 @@ pair <float, float> getT1CHSMET_fromMINIAOD( FactorizedJetCorrector * jet_correc
+     // remove SA or global muons from jets before correcting
+     //
+ 
+-    for (unsigned int pfcind = 0; pfcind < cms3.pfjets_pfcandmup4().at(iJet).size(); pfcind++){
+-      jetp4_uncorr -= cms3.pfjets_pfcandmup4().at(iJet).at(pfcind);
++    if ((cms3.evt_isRealData() || cms3.evt_CMS3tag().at(0).Contains("08-00-16")) && !(cms3.evt_CMS3tag().at(0).Contains("CMS4"))) {
++        for (unsigned int pfcind = 0; pfcind < cms3.pfjets_pfcandIndicies().at(iJet).size(); pfcind++){
++            int index = cms3.pfjets_pfcandIndicies().at(iJet).at(pfcind);
++            if( cms3.pfcands_isGlobalMuon()    .at(index) ||
++                    cms3.pfcands_isStandAloneMuon().at(index)){
++                jetp4_uncorr -= cms3.pfcands_p4()   .at(index);
++            }
++        }
++    } else {
++        for (unsigned int pfcind = 0; pfcind < cms3.pfjets_pfcandmup4().at(iJet).size(); pfcind++){
++            jetp4_uncorr -= cms3.pfjets_pfcandmup4().at(iJet).at(pfcind);
++        }
+     }
+ 
+     // for (unsigned int pfcind = 0; pfcind < cms3.pfjets_pfcandIndicies().at(iJet).size(); pfcind++){

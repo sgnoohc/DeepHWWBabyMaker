@@ -5,6 +5,10 @@ cd /cvmfs/cms.cern.ch/$SCRAM_ARCH/cms/cmssw/$CMSSW_VERSION/src
 eval `scramv1 runtime -sh`
 cd - > /dev/null
 
+cd CORE/
+git apply ../MetSelections_CMS3Compatible.patch
+cd ../
+
 export COREDIR=$PWD/CORE
 export LD_LIBRARY_PATH=$PWD/rooutil:$LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=$PWD/coreutil:$LD_LIBRARY_PATH
